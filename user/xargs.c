@@ -19,7 +19,6 @@ run_once(char **argv)
 
   wait(0);
 }
-
 int
 main(int argc, char *argv[])
 {
