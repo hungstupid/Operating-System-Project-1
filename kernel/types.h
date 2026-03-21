@@ -8,3 +8,11 @@ typedef unsigned int  uint32;
 typedef unsigned long uint64;
 
 typedef uint64 pde_t;
+
+struct procinfo {
+  int pid;         // Process ID
+  int ppid;        // Parent Process ID
+  int state;       // Trạng thái tiến trình
+  uint64 sz;       // Kích thước bộ nhớ
+  char name[16];   // Tên tiến trình
+};
