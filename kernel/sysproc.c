@@ -96,14 +96,11 @@ uint64
 sys_trace(void)
 {
   int mask;
-  
-  // Lấy đối số đầu tiên (chính là mask) do người dùng truyền vào
-  argint(0, &mask); 
-  
-  // Gán mask này cho tiến trình hiện tại đang chạy
+
+  argint(0, &mask);
   myproc()->trace_mask = mask;
-  
-  return 0; // Trả về 0 báo hiệu thành công
+
+  return 0;
 }
 
 // Lấy mảng proc từ file proc.c để có thể duyệt qua danh sách tiến trình
