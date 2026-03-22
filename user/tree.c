@@ -72,7 +72,7 @@ tree(char *path, int depth)
       tree(buf, depth + 1);
   }
 
-  if (n < 0 || n > 0)
+  if (n < 0)
     fprintf(2, "tree: read error on %s\n", path);
 
   close(fd);
