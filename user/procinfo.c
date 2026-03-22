@@ -2,7 +2,9 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[])
+{
   // Kiểm tra xem người dùng có nhập PID chưa
   if(argc < 2){
     printf("Usage: procinfo <pid>\n");
