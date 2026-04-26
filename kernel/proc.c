@@ -131,6 +131,13 @@ found:
     release(&p->lock);
     return 0;
   }
+  // Cấp phát 1 page vật lý cho usyscall
+if((p->usyscall = (struct usyscall *)kalloc()) == 0){
+  freeproc(p);
+  release(&p->lock);
+  return 0;
+}
+p->usyscall->pid = p->pid; // Ghi PID vào vùng nhớ dùng chung
 
   // Cấp phát 1 page vật lý cho usyscall
   if((p->usyscall = (struct usyscall *)kalloc()) == 0){
@@ -166,6 +173,7 @@ freeproc(struct proc *p)
 {
   if(p->trapframe)
     kfree((void*)p->trapframe);
+<<<<<<< HEAD
 
   if(p->usyscall) {
     kfree((void*)p->usyscall);
@@ -173,6 +181,14 @@ freeproc(struct proc *p)
   p->usyscall = 0;
   
   p->trapframe = 0;
+=======
+  p->trapframe = 0; // Đưa dòng này lên đây cho gọn
+
+  if(p->usyscall)
+    kfree((void*)p->usyscall); // Giải phóng RAM vật lý đã cấp cho usyscall
+  p->usyscall = 0;
+  
+>>>>>>> f9cd428 (Save Task 2: vmprint)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -216,6 +232,15 @@ proc_pagetable(struct proc *p)
     uvmfree(pagetable, 0);
     return 0;
   }
+  // Map địa chỉ ảo USYSCALL tới địa chỉ vật lý p->usyscall
+// Quyền: PTE_R (Read) và PTE_U (User có quyền xem)
+if(mappages(pagetable, USYSCALL, PGSIZE,
+              (uint64)p->usyscall, PTE_R | PTE_U) < 0){
+    uvmunmap(pagetable, TRAMPOLINE, 1, 0); // Hủy map cũ
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);   // Hủy map cũ
+    uvmfree(pagetable, 0);
+    return 0;
+  }
 
   // Map địa chỉ ảo USYSCALL tới địa chỉ vật lý của p->usyscall
   if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)(p->usyscall), PTE_R | PTE_U) < 0){
@@ -233,6 +258,7 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
+  uvmunmap(pagetable, USYSCALL, 1, 0); // Hủy ánh xạ trang USYSCALL
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmunmap(pagetable, USYSCALL, 1, 0);
