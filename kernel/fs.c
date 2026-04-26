@@ -416,6 +416,43 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     return addr;
   }
+  bn -= NINDIRECT;
+
+  if(bn < NINDIRECT * NINDIRECT){
+    // 1. Kiểm tra/Cấp phát khối gián tiếp cấp 1 (Double indirect block)
+    if((addr = ip->addrs[NDIRECT+1]) == 0){
+      addr = balloc(ip->dev);
+      if(addr == 0) return 0;
+      ip->addrs[NDIRECT+1] = addr;
+    }
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+
+    // 2. Kiểm tra/Cấp phát khối gián tiếp cấp 2
+    if((addr = a[bn / NINDIRECT]) == 0){
+      addr = balloc(ip->dev);
+      if(addr == 0){
+        brelse(bp);
+        return 0;
+      }
+      a[bn / NINDIRECT] = addr;
+      log_write(bp);
+    }
+    brelse(bp);
+
+    // 3. Trả về địa chỉ block dữ liệu cuối cùng
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if((addr = a[bn % NINDIRECT]) == 0){
+      addr = balloc(ip->dev);
+      if(addr != 0){
+        a[bn % NINDIRECT] = addr;
+        log_write(bp);
+      }
+    }
+    brelse(bp);
+    return addr;
+  }
 
   panic("bmap: out of range");
 }
@@ -448,8 +485,29 @@ itrunc(struct inode *ip)
     ip->addrs[NDIRECT] = 0;
   }
 
-  ip->size = 0;
-  iupdate(ip);
+  // Giải phóng Doubly-indirect blocks
+  if(ip->addrs[NDIRECT+1]){
+    struct buf *bp2 = bread(ip->dev, ip->addrs[NDIRECT+1]);
+    uint *a2 = (uint*)bp2->data;
+    for(int j = 0; j < NINDIRECT; j++){
+      if(a2[j]){
+        struct buf *bp = bread(ip->dev, a2[j]);
+        uint *a = (uint*)bp->data;
+        for(int k = 0; k < NINDIRECT; k++){
+          if(a[k]) bfree(ip->dev, a[k]);
+        }
+        brelse(bp);
+        bfree(ip->dev, a2[j]);
+      }
+    }
+    brelse(bp2);
+    bfree(ip->dev, ip->addrs[NDIRECT+1]);
+    ip->addrs[NDIRECT+1] = 0;
+  }
+
+  ip->size = 0; // Dòng có sẵn trong file
+  iupdate(ip);  // Dòng có sẵn trong file
+  
 }
 
 // Copy stat information from inode.
