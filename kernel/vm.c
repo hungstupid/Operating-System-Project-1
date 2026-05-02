@@ -496,8 +496,7 @@ void _vmprint(pagetable_t pagetable, int level)
       continue;
 
     for(int j = 0; j <= level; j++){
-      if(j) printf(" ");
-      printf("..");
+      printf(" ..");
     }
 
     uint64 pa = PTE2PA(pte);
